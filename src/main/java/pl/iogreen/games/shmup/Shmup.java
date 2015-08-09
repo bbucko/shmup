@@ -2,47 +2,71 @@ package pl.iogreen.games.shmup;
 
 import org.lwjgl.Sys;
 import org.lwjgl.glfw.GLFWErrorCallback;
-import org.lwjgl.glfw.GLFWKeyCallback;
+import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GLContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import pl.iogreen.games.shmup.game.Game;
+import pl.iogreen.games.shmup.game.utils.Timer;
 
-import static org.lwjgl.glfw.Callbacks.errorCallbackPrint;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.system.MemoryUtil.NULL;
 
 public class Shmup {
 
+    private static final Logger LOG = LoggerFactory.getLogger(Shmup.class);
+
+    static public final int SCREEN_WIDTH = 800;
+    static public final int SCREEN_HEIGHT = 600; //480
+
     // We need to strongly reference callback instances.
-    private GLFWErrorCallback errorCallback;
-    private GLFWKeyCallback keyCallback;
+    private final GLFWErrorCallback errorCallback;
 
     // The window handle
     private long window;
 
-    private static final int WIDTH = 300;
-    private static final int HEIGHT = 300;
+    private final Game game;
+    private final Timer timer;
 
-    public void run() {
-        System.out.println("Hello LWJGL " + Sys.getVersion() + "!");
+    public Shmup() {
+        timer = new Timer();
+        game = new Game(timer);
+        // Setup an error callback. The default implementation
+        // will print the error message in System.err.
+        // glfwSetErrorCallback(errorCallback = errorCallbackPrint(System.err));
 
-        try {
-            init();
-            loop();
+        glfwSetErrorCallback(errorCallback = new GLFWErrorCallback() {
+            private final Logger errorLogger = LoggerFactory.getLogger("ErrorLogger");
 
-            // Release window and window callbacks
-            glfwDestroyWindow(window);
-            keyCallback.release();
-        } finally {
-            // Terminate GLFW and release the GLFW errorfun
-            glfwTerminate();
-            errorCallback.release();
+            @Override
+            public void invoke(int error, long description) {
+                errorLogger.error("[{}] Error occurred: {}", error, description);
+            }
+        });
+
+        // Initialize GLFW. Most GLFW functions will not work before doing this.
+        if (glfwInit() != GL_TRUE) {
+            throw new IllegalStateException("Unable to initialize GLFW");
         }
-    }
 
-    private void init() {
-        initGLFW();
-        createWindow(WIDTH, HEIGHT);
-        initializeKeyCallback();
+        // Configure our window
+        glfwDefaultWindowHints(); // optional, the current window hints are already the default
+        glfwWindowHint(GLFW_VISIBLE, GL_FALSE); // the window will stay hidden after creation
+        glfwWindowHint(GLFW_RESIZABLE, GL_FALSE); // the window will be resizable
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4); //OpenGL Major
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1); //OpenGL Minor
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+        // Create the window
+        window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Hello World!", NULL, NULL);
+        if (window == NULL) {
+            throw new RuntimeException("Failed to create the GLFW window");
+        }
+
+        // Setup a key callback. It will be called every time a key is pressed, repeated or released.
+        glfwSetKeyCallback(window, game);
 
         // Make the OpenGL context current
         glfwMakeContextCurrent(window);
@@ -52,62 +76,44 @@ public class Shmup {
 
         // Make the window visible
         glfwShowWindow(window);
-
     }
 
-    private void initializeKeyCallback() {
-        // Setup a key callback. It will be called every time a key is pressed, repeated or released.
-        glfwSetKeyCallback(window, keyCallback = new GLFWKeyCallback() {
-            @Override
-            public void invoke(long window, int key, int scancode, int action, int mods) {
-                if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
-                    glfwSetWindowShouldClose(window, GL_TRUE); // We will detect this in our rendering loop
+    public void run() {
+        try {
+            final GLContext glContext = GLContext.createFromCurrent();
+
+            LOG.info("Hello LWJGL {}!", Sys.getVersion());
+            LOG.info("OpenGL Version: {} ({})", GL11.glGetString(GL11.GL_VERSION), glContext.getCapabilities().OpenGL41);
+
+            while (game.stillAlive) {
+                final long tick = timer.tick();
+
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the framebuffer
+
+                // Poll for window events. The key callback above will only be
+                // invoked during this call.
+                glfwPollEvents();
+
+                game.update(tick);
+
+                game.render();
+
+                glfwSwapBuffers(window); // swap the color buffers
+
+                if (timer.frameElapsed()) {
+                    LOG.info("FPS: {} UPS: {}", timer.fps(), timer.fps());
+                }
             }
-        });
-    }
 
-    private void initGLFW() {
-        // Setup an error callback. The default implementation
-        // will print the error message in System.err.
-        glfwSetErrorCallback(errorCallback = errorCallbackPrint(System.err));
+            glfwSetWindowShouldClose(window, GL11.GL_TRUE); // We will detect this in our rendering loop
 
-        // Initialize GLFW. Most GLFW functions will not work before doing this.
-        if (glfwInit() != GL_TRUE) {
-            throw new IllegalStateException("Unable to initialize GLFW");
-        }
-    }
-
-    private void createWindow(int WIDTH, int HEIGHT) {
-        // Configure our window
-        glfwDefaultWindowHints(); // optional, the current window hints are already the default
-        glfwWindowHint(GLFW_VISIBLE, GL_FALSE); // the window will stay hidden after creation
-        glfwWindowHint(GLFW_RESIZABLE, GL_FALSE); // the window will be resizable
-
-        // Create the window
-        window = glfwCreateWindow(WIDTH, HEIGHT, "Hello World!", NULL, NULL);
-        if (window == NULL) {
-            throw new RuntimeException("Failed to create the GLFW window");
-        }
-    }
-
-    private void loop() {
-        // This line is critical for LWJGL's interoperation with GLFW's
-        // OpenGL context, or any context that is managed externally.
-        // LWJGL detects the context that is current in the current thread,
-        // creates the ContextCapabilities instance and makes the OpenGL
-        // bindings available for use.
-        GLContext.createFromCurrent();
-        // Set the clear color
-        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-
-        while (glfwWindowShouldClose(window) == GL_FALSE) {
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the framebuffer
-
-            glfwSwapBuffers(window); // swap the color buffers
-
-            // Poll for window events. The key callback above will only be
-            // invoked during this call.
-            glfwPollEvents();
+            // Release window and window callbacks
+            glfwDestroyWindow(window);
+            game.release();
+        } finally {
+            // Terminate GLFW and release the GLFW errorfun
+            glfwTerminate();
+            errorCallback.release();
         }
     }
 

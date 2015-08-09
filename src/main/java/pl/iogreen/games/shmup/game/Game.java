@@ -1,9 +1,105 @@
 package pl.iogreen.games.shmup.game;
 
-public class Game {
+import org.lwjgl.BufferUtils;
+import org.lwjgl.glfw.GLFWKeyCallback;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import pl.iogreen.games.shmup.game.utils.ShaderLoader;
+import pl.iogreen.games.shmup.game.utils.Timer;
 
-    public void tick() {
+import java.nio.FloatBuffer;
 
+import static org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE;
+import static org.lwjgl.glfw.GLFW.GLFW_RELEASE;
+import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL15.*;
+import static org.lwjgl.opengl.GL20.*;
+import static org.lwjgl.opengl.GL30.*;
+
+public class Game extends GLFWKeyCallback {
+
+    private static final Logger LOG = LoggerFactory.getLogger(Game.class);
+    private final Timer timer;
+
+    public volatile boolean stillAlive = true;
+
+    public Game(Timer timer) {
+        this.timer = timer;
     }
 
+    @Override
+    public void invoke(long window, int key, int scancode, int action, int mods) {
+        if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) {
+            stillAlive = false;
+        }
+    }
+
+    public void update(long tick) {
+        timer.updateUPSCount();
+    }
+
+    public void render() {
+        timer.updateFPSCount();
+        try {
+            //Create VBO
+            FloatBuffer vertices = BufferUtils.createFloatBuffer(3 * 6)
+                    .put(new float[]{-0.6f, -0.4f, 0f, 1f, 0f, 0f})
+                    .put(new float[]{0.6f, -0.4f, 0f, 0f, 1f, 0f})
+                    .put(new float[]{0f, 0.6f, 0f, 0f, 0f, 1f});
+            vertices.flip();
+
+            int vbo = glGenBuffers();
+            glBindBuffer(GL_ARRAY_BUFFER, vbo);
+            glBufferData(GL_ARRAY_BUFFER, vertices, GL_STATIC_DRAW);
+
+            //Create VAO
+            int vao = glGenVertexArrays();
+            glBindVertexArray(vao);
+
+            //Create Vertex Shader
+            int vertexShader = glCreateShader(GL_VERTEX_SHADER);
+            glShaderSource(vertexShader, ShaderLoader.loadShader("/shaders/vertex.glsl"));
+            glCompileShader(vertexShader);
+            int status = glGetShaderi(vertexShader, GL_COMPILE_STATUS);
+            if (status != GL_TRUE) {
+                throw new RuntimeException(glGetShaderInfoLog(vertexShader));
+            }
+
+            //Create Fragment Shader
+            int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+            glShaderSource(fragmentShader, ShaderLoader.loadShader("/shaders/fragment.glsl"));
+            glCompileShader(fragmentShader);
+            status = glGetShaderi(fragmentShader, GL_COMPILE_STATUS);
+            if (status != GL_TRUE) {
+                throw new RuntimeException(glGetShaderInfoLog(fragmentShader));
+            }
+
+            //Create shader program
+            int shaderProgram = glCreateProgram();
+            glAttachShader(shaderProgram, vertexShader);
+            glAttachShader(shaderProgram, fragmentShader);
+            glBindFragDataLocation(shaderProgram, 0, "fragColor");
+            glLinkProgram(shaderProgram);
+            status = glGetProgrami(shaderProgram, GL_LINK_STATUS);
+            if (status != GL_TRUE) {
+                throw new RuntimeException(glGetProgramInfoLog(shaderProgram));
+            }
+
+            glUseProgram(shaderProgram);
+
+            int floatSize = 4;
+
+            int positionAttribute = glGetAttribLocation(shaderProgram, "position");
+            glEnableVertexAttribArray(positionAttribute);
+            glVertexAttribPointer(positionAttribute, 3, GL_FLOAT, false, 6 * floatSize, 0);
+
+            int colorAttribute = glGetAttribLocation(shaderProgram, "color");
+            glEnableVertexAttribArray(colorAttribute);
+            glVertexAttribPointer(colorAttribute, 3, GL_FLOAT, false, 6 * floatSize, 3 * floatSize);
+
+            glDrawArrays(GL_TRIANGLES, 0, 3);
+        } catch (Exception e) {
+            LOG.error("Error", e);
+        }
+    }
 }
