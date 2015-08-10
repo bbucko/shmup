@@ -2,14 +2,19 @@ package pl.iogreen.games.shmup.game.utils;
 
 public class Timer {
 
+    public final static long SECONDS_IN_NANOSECOND = 1_000_000_000l;
+    public final static int TARGET_FPS = 75;
+    public final static int TARGET_UPS = 30;
+
     public long timeCount = 0l;
+
     private long lastLoopTime = System.nanoTime();
-
     private int fps;
-    private int ups;
 
+    private int ups;
     private int fpsCount = 0;
     private int upsCount = 0;
+
 
     public long tick() {
         final long delta = System.nanoTime() - lastLoopTime;
@@ -43,7 +48,7 @@ public class Timer {
     }
 
     public boolean frameElapsed() {
-        final boolean elapsed = timeCount > 1000000000l;
+        final boolean elapsed = timeCount > SECONDS_IN_NANOSECOND;
         if (elapsed) {
             zero();
         }

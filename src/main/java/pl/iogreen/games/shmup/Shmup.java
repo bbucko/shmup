@@ -85,23 +85,32 @@ public class Shmup {
             LOG.info("Hello LWJGL {}!", Sys.getVersion());
             LOG.info("OpenGL Version: {} ({})", GL11.glGetString(GL11.GL_VERSION), glContext.getCapabilities().OpenGL41);
 
+            long accumulator = 0;
+            float alpha;
+
+            long interval = Timer.SECONDS_IN_NANOSECOND / Timer.TARGET_UPS;
+
             while (game.stillAlive) {
                 final long tick = timer.tick();
+                accumulator += tick;
 
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the framebuffer
 
                 // Poll for window events. The key callback above will only be
                 // invoked during this call.
                 glfwPollEvents();
+                while (accumulator >= interval) {
+                    game.update(tick);
+                    accumulator = accumulator - interval;
+                }
 
-                game.update(tick);
-
-                game.render();
+                alpha = (float) accumulator / interval;
+                game.render(alpha);
 
                 glfwSwapBuffers(window); // swap the color buffers
 
                 if (timer.frameElapsed()) {
-                    LOG.info("FPS: {} UPS: {}", timer.fps(), timer.fps());
+                    LOG.info("FPS: {} UPS: {}", timer.fps(), timer.ups());
                 }
             }
 
