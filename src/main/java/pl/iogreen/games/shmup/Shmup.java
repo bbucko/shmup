@@ -1,6 +1,7 @@
 package pl.iogreen.games.shmup;
 
 import org.lwjgl.Sys;
+import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GLContext;
@@ -121,7 +122,7 @@ public class Shmup {
             game.release();
         } finally {
             // Terminate GLFW and release the GLFW errorfun
-            glfwTerminate();
+            GLFW.glfwTerminate();
             errorCallback.release();
         }
     }

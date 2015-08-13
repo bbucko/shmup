@@ -5,6 +5,9 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.net.URL;
 
+import static org.lwjgl.opengl.GL11.GL_TRUE;
+import static org.lwjgl.opengl.GL20.*;
+
 public class ShaderLoader {
     public static CharSequence loadShader(String path) {
         StringBuilder shaderSource = new StringBuilder();
@@ -22,5 +25,24 @@ public class ShaderLoader {
         }
 
         return shaderSource;
+    }
+
+    public static int createVertexShader(String path) {
+        return loadShader(path, GL_VERTEX_SHADER);
+    }
+
+    public static int createFragmentShader(String path) {
+        return loadShader(path, GL_FRAGMENT_SHADER);
+    }
+
+    private static int loadShader(String path, int vertexType) {
+        int aShader = glCreateShader(vertexType);
+        glShaderSource(aShader, ShaderLoader.loadShader(path));
+        glCompileShader(aShader);
+        int status = glGetShaderi(aShader, GL_COMPILE_STATUS);
+        if (status != GL_TRUE) {
+            throw new RuntimeException(glGetShaderInfoLog(aShader));
+        }
+        return aShader;
     }
 }

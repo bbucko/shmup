@@ -73,31 +73,13 @@ public class Game extends GLFWKeyCallback {
             glBindBuffer(GL_ARRAY_BUFFER, vbo);
             glBufferData(GL_ARRAY_BUFFER, vertices, GL_STATIC_DRAW);
 
-            //Create Vertex Shader
-            int vertexShader = glCreateShader(GL_VERTEX_SHADER);
-            glShaderSource(vertexShader, ShaderLoader.loadShader("/shaders/vertex.glsl"));
-            glCompileShader(vertexShader);
-            int status = glGetShaderi(vertexShader, GL_COMPILE_STATUS);
-            if (status != GL_TRUE) {
-                throw new RuntimeException(glGetShaderInfoLog(vertexShader));
-            }
-
-            //Create Fragment Shader
-            int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-            glShaderSource(fragmentShader, ShaderLoader.loadShader("/shaders/fragment.glsl"));
-            glCompileShader(fragmentShader);
-            status = glGetShaderi(fragmentShader, GL_COMPILE_STATUS);
-            if (status != GL_TRUE) {
-                throw new RuntimeException(glGetShaderInfoLog(fragmentShader));
-            }
-
             //Create shader program
             int shaderProgram = glCreateProgram();
-            glAttachShader(shaderProgram, vertexShader);
-            glAttachShader(shaderProgram, fragmentShader);
+            glAttachShader(shaderProgram, ShaderLoader.createVertexShader("/shaders/vertex.glsl"));
+            glAttachShader(shaderProgram, ShaderLoader.createFragmentShader("/shaders/fragment.glsl"));
             glBindFragDataLocation(shaderProgram, 0, "fragColor");
             glLinkProgram(shaderProgram);
-            status = glGetProgrami(shaderProgram, GL_LINK_STATUS);
+            int status = glGetProgrami(shaderProgram, GL_LINK_STATUS);
             if (status != GL_TRUE) {
                 throw new RuntimeException(glGetProgramInfoLog(shaderProgram));
             }
@@ -128,6 +110,6 @@ public class Game extends GLFWKeyCallback {
     }
 
     private int floats(int i) {
-        return i * FLOAT_SIZE;
+        return i * java.lang.Float.BYTES;
     }
 }
