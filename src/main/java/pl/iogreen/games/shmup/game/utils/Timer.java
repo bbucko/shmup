@@ -3,7 +3,7 @@ package pl.iogreen.games.shmup.game.utils;
 public class Timer {
 
     public final static long SECONDS_IN_NANOSECOND = 1_000_000_000l;
-    public final static int TARGET_FPS = 75;
+    public final static int TARGET_FPS = 30;
     public final static int TARGET_UPS = 30;
 
     public long timeCount = 0l;
