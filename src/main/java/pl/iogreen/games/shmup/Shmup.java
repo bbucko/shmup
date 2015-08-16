@@ -82,6 +82,8 @@ public class Shmup {
     public void run() {
         try {
             final GLContext glContext = GLContext.createFromCurrent();
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_LESS);
 
             LOG.info("Hello LWJGL {}!", Sys.getVersion());
             LOG.info("OpenGL Version: {} ({})", GL11.glGetString(GL11.GL_VERSION), glContext.getCapabilities().OpenGL41);
@@ -124,6 +126,7 @@ public class Shmup {
             // Terminate GLFW and release the GLFW errorfun
             GLFW.glfwTerminate();
             errorCallback.release();
+            game.close();
         }
     }
 

@@ -14,10 +14,10 @@ void main() {
     vec4 secondTextureColor = texture(secondTexture, textureCoord);
 
 
-if(textureCoord.y > 0.5) {
-    firstTextureColor = texture(firstTexture,  vec2(textureCoord.x, 1 - textureCoord.y));
-    secondTextureColor = texture(secondTexture, vec2(textureCoord.x, 1 - textureCoord.y));
-}
+    if(textureCoord.y > 0.5) {
+        firstTextureColor = texture(firstTexture,  vec2(textureCoord.x, 1 - textureCoord.y));
+        secondTextureColor = texture(secondTexture, vec2(textureCoord.x, 1 - textureCoord.y));
+    }
 
 
     outColor = mix(firstTextureColor, secondTextureColor, time);
