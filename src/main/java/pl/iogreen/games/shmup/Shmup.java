@@ -1,5 +1,6 @@
 package pl.iogreen.games.shmup;
 
+import org.apache.commons.imaging.ImageReadException;
 import org.lwjgl.Sys;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWErrorCallback;
@@ -9,6 +10,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.iogreen.games.shmup.game.Game;
 import pl.iogreen.games.shmup.game.utils.Timer;
+import pl.iogreen.games.shmup.graphic.Image;
+
+import java.io.IOException;
+import java.net.URISyntaxException;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -30,13 +35,13 @@ public class Shmup {
     private final Game game;
     private final Timer timer;
 
+    long accumulator = 0;
+
+    long interval = Timer.SECONDS_IN_NANOSECOND / Timer.TARGET_UPS;
+
     public Shmup() {
-        timer = new Timer();
-        game = new Game(timer);
         // Setup an error callback. The default implementation
         // will print the error message in System.err.
-        // glfwSetErrorCallback(errorCallback = errorCallbackPrint(System.err));
-
         glfwSetErrorCallback(errorCallback = new GLFWErrorCallback() {
             private final Logger errorLogger = LoggerFactory.getLogger("ErrorLogger");
 
@@ -50,6 +55,9 @@ public class Shmup {
         if (glfwInit() != GL_TRUE) {
             throw new IllegalStateException("Unable to initialize GLFW");
         }
+
+        timer = new Timer();
+        game = new Game(timer);
 
         // Configure our window
         glfwDefaultWindowHints(); // optional, the current window hints are already the default
@@ -82,51 +90,42 @@ public class Shmup {
     public void run() {
         try {
             final GLContext glContext = GLContext.createFromCurrent();
+
             glEnable(GL_DEPTH_TEST);
             glDepthFunc(GL_LESS);
 
             LOG.info("Hello LWJGL {}!", Sys.getVersion());
             LOG.info("OpenGL Version: {} ({})", GL11.glGetString(GL11.GL_VERSION), glContext.getCapabilities().OpenGL41);
 
-            long accumulator = 0;
-            float alpha;
-
-            long interval = Timer.SECONDS_IN_NANOSECOND / Timer.TARGET_UPS;
+            game.init();
 
             while (game.stillAlive) {
                 final long tick = timer.tick();
                 accumulator += tick;
 
-                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the framebuffer
-
-                // Poll for window events. The key callback above will only be
-                // invoked during this call.
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                 glfwPollEvents();
                 while (accumulator >= interval) {
-                    game.update(tick);
+                    game.update(interval);
                     accumulator = accumulator - interval;
                 }
 
-                alpha = (float) accumulator / interval;
-                game.render(alpha);
+                game.render((float) accumulator / interval);
 
-                glfwSwapBuffers(window); // swap the color buffers
+                glfwSwapBuffers(window);
 
                 if (timer.frameElapsed()) {
-                    LOG.info("FPS: {} UPS: {}", timer.fps(), timer.ups());
+                    LOG.debug("FPS: {} UPS: {}", timer.fps(), timer.ups());
                 }
             }
 
-            glfwSetWindowShouldClose(window, GL11.GL_TRUE); // We will detect this in our rendering loop
-
-            // Release window and window callbacks
-            glfwDestroyWindow(window);
-            game.release();
+            glfwSetWindowShouldClose(window, GL11.GL_TRUE);
         } finally {
-            // Terminate GLFW and release the GLFW errorfun
+            glfwDestroyWindow(window);
             GLFW.glfwTerminate();
-            errorCallback.release();
+
             game.close();
+            errorCallback.release();
         }
     }
 

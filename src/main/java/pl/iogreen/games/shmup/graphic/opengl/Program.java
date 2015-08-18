@@ -1,8 +1,13 @@
 package pl.iogreen.games.shmup.graphic.opengl;
 
+import org.joml.Matrix4f;
+import org.lwjgl.BufferUtils;
+
+import java.nio.FloatBuffer;
 import java.util.HashSet;
 import java.util.Set;
 
+import static org.lwjgl.opengl.GL11.GL_FLOAT;
 import static org.lwjgl.opengl.GL11.GL_TRUE;
 import static org.lwjgl.opengl.GL20.*;
 
@@ -24,10 +29,22 @@ public class Program {
         if (status != GL_TRUE) {
             throw new RuntimeException(glGetProgramInfoLog(objectId));
         }
+        use();
     }
 
     public void use() {
         glUseProgram(objectId);
+    }
+
+    public void uniform(String name, float value) {
+        int uniTime = glGetUniformLocation(objectId, name);
+        glUniform1f(uniTime, value);
+    }
+
+    public void uniform(String name, Matrix4f model) {
+        final int uniModel = glGetUniformLocation(objectId, name);
+        final FloatBuffer modelFB = BufferUtils.createFloatBuffer(16);
+        glUniformMatrix4fv(uniModel, false, model.get(modelFB));
     }
 
     public void close() {
@@ -35,5 +52,19 @@ public class Program {
             glDetachShader(objectId, shader.objectId);
         }
         glDeleteProgram(objectId);
+    }
+
+    public void pointer(String pointerName, int size, int offset) {
+        pointer(pointerName, size, 8, offset);
+    }
+
+    public void pointer(String pointerName, int size, int length, int offset) {
+        int positionAttribute = glGetAttribLocation(objectId, pointerName);
+        glEnableVertexAttribArray(positionAttribute);
+        glVertexAttribPointer(positionAttribute, size, GL_FLOAT, false, floats(length), floats(offset));
+    }
+
+    private int floats(int i) {
+        return i * java.lang.Float.BYTES;
     }
 }

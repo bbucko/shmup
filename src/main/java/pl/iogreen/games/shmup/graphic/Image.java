@@ -1,5 +1,6 @@
 package pl.iogreen.games.shmup.graphic;
 
+import org.apache.commons.imaging.ImageReadException;
 import org.apache.commons.io.IOUtils;
 import org.immutables.value.Value;
 import org.lwjgl.BufferUtils;
@@ -17,23 +18,57 @@ import java.nio.IntBuffer;
 import static org.lwjgl.stb.STBImage.*;
 
 @Value.Immutable
-public abstract class Image {
+public abstract class Image implements AutoCloseable {
     public abstract int width();
 
     public abstract int height();
+
+    public abstract int comp();
 
     public abstract ByteBuffer buffer();
 
     private static final boolean USE_STB = true;
 
-    public static Image load(String path) throws IOException, URISyntaxException {
+    @Override
+    public void close() {
+        if (USE_STB) {
+            stbi_image_free(this.buffer());
+        }
+    }
+
+    public static Image load(String path) throws IOException, URISyntaxException, ImageReadException {
         return USE_STB ? useSTB(path) : useImageIO(path);
     }
 
-    private static Image useImageIO(String path) throws URISyntaxException, IOException {
+    private static Image useSTB(String path) throws IOException {
+        final byte[] imageBytes = IOUtils.toByteArray(Image.class.getResourceAsStream(path));
+        final ByteBuffer imageBuffer = (ByteBuffer) ByteBuffer.allocateDirect(imageBytes.length).put(imageBytes).flip();
+
+        final IntBuffer w = BufferUtils.createIntBuffer(1);
+        final IntBuffer h = BufferUtils.createIntBuffer(1);
+        final IntBuffer comp = BufferUtils.createIntBuffer(1);
+
+        // Use info to read image metadata without decoding the entire image.
+        // We don't need this for this demo, just testing the API.
+        if (stbi_info_from_memory(imageBuffer, w, h, comp) == 0) {
+            throw new RuntimeException("Failed to read image information: " + stbi_failure_reason());
+        }
+
+        final ByteBuffer image = stbi_load_from_memory(imageBuffer, w, h, comp, 0);
+        if (image == null) {
+            throw new RuntimeException("Failed to load image: " + stbi_failure_reason());
+        }
+        return ImmutableImage.builder()
+                .width(w.get(0))
+                .height(h.get(0))
+                .comp(comp.get(0))
+                .buffer(image).build();
+    }
+
+    private static Image useImageIO(String path) throws URISyntaxException, IOException, ImageReadException {
         final File input = new File(Image.class.getResource(path).toURI());
-        final BufferedImage read = ImageIO.read(input);
-        final BufferedImage image = flipImage(read);
+
+        final BufferedImage image = flipImage(ImageIO.read(input));
 
         int width = image.getWidth();
         int height = image.getHeight();
@@ -67,32 +102,15 @@ public abstract class Image {
         return ImmutableImage.builder()
                 .width(width)
                 .height(height)
+                .comp(0)
                 .buffer(buffer).build();
     }
 
-    private static Image useSTB(String path) throws IOException {
-        final byte[] imageBytes = IOUtils.toByteArray(Image.class.getResourceAsStream(path));
-        final ByteBuffer imageBuffer = ByteBuffer.allocateDirect(imageBytes.length);
-        imageBuffer.put(imageBytes).flip();
-
-        IntBuffer w = BufferUtils.createIntBuffer(1);
-        IntBuffer h = BufferUtils.createIntBuffer(1);
-        IntBuffer comp = BufferUtils.createIntBuffer(1);
-
-        // Use info to read image metadata without decoding the entire image.
-        // We don't need this for this demo, just testing the API.
-        if (stbi_info_from_memory(imageBuffer, w, h, comp) == 0)
-            throw new RuntimeException("Failed to read image information: " + stbi_failure_reason());
-        return ImmutableImage.builder()
-                .width(w.get(0))
-                .height(h.get(0))
-                .buffer(stbi_load_from_memory(imageBuffer, w, h, comp, 0)).build();
-    }
-
     private static BufferedImage flipImage(BufferedImage image) {
-        AffineTransform transform = AffineTransform.getScaleInstance(1f, -1f);
+        final AffineTransform transform = AffineTransform.getScaleInstance(1f, -1f);
         transform.translate(0, -image.getHeight());
-        AffineTransformOp operation = new AffineTransformOp(transform, AffineTransformOp.TYPE_NEAREST_NEIGHBOR);
+
+        final AffineTransformOp operation = new AffineTransformOp(transform, AffineTransformOp.TYPE_NEAREST_NEIGHBOR);
         return operation.filter(image, null);
     }
 }

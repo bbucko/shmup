@@ -1,4 +1,4 @@
-#version 410 core
+#version 410
 
 in vec3 position;
 in vec3 color;
@@ -17,5 +17,4 @@ void main() {
     mat4 mvp = projection * view * model;
     gl_Position = mvp * vec4(position, 1.0);
     textureCoord = texcoord;
-
 }
