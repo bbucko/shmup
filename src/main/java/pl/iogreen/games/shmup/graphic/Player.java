@@ -4,9 +4,9 @@ import org.lwjgl.BufferUtils;
 import pl.iogreen.games.shmup.graphic.opengl.Program;
 
 import java.nio.FloatBuffer;
-import java.nio.IntBuffer;
 
-import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL11.GL_TRIANGLES;
+import static org.lwjgl.opengl.GL11.glDrawArrays;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL30.glBindVertexArray;
 import static org.lwjgl.opengl.GL30.glGenVertexArrays;
@@ -28,50 +28,78 @@ public class Player implements Drawable {
         glBindVertexArray(vao);
 
         //Create VBO
-        FloatBuffer vertices = (FloatBuffer) BufferUtils.createFloatBuffer(4 * 8)
-//                .put(
-//                        new float[]{
-//                                x - 0.5f, y + 0.5f, z + 1f, 1f, 1f, 1f, 0f, 0f,
-//                                x + 0.5f, y + 0.5f, z + 1f, 1f, 1f, 1f, 1f, 0f,
-//                                x + 0.5f, y - 0.5f, z + 1f, 1f, 1f, 1f, 1f, 1f,
-//                                x - 0.5f, y - 0.5f, z + 1f, 1f, 1f, 1f, 0f, 1f,
-//                        })
+        FloatBuffer vertices = (FloatBuffer) BufferUtils.createFloatBuffer(6 * 6 * Program.VERTEX_SIZE)
                 .put(
                         new float[]{
-                                -1f, 1f, 1f, 1f, 1f, 1f, 0f, 0f,
-                                1f, 1f, 1f, 1f, 1f, 1f, 1f, 0f,
-                                1f, -1f, 1f, 1f, 1f, 1f, 1f, 1f,
-                                -1f, -1f, 1f, 1f, 1f, 1f, 0f, 1f,
+                                //  X     Y     Z       U     V
+                                // bottom
+                                -1.0f, -1.0f, -1.0f, 0.0f, 0.0f,
+                                1.0f, -1.0f, -1.0f, 1.0f, 0.0f,
+                                -1.0f, -1.0f, 1.0f, 0.0f, 1.0f,
+                                1.0f, -1.0f, -1.0f, 1.0f, 0.0f,
+                                1.0f, -1.0f, 1.0f, 1.0f, 1.0f,
+                                -1.0f, -1.0f, 1.0f, 0.0f, 1.0f,
+
+                                // top
+                                -1.0f, 1.0f, -1.0f, 0.0f, 0.0f,
+                                -1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+                                1.0f, 1.0f, -1.0f, 1.0f, 0.0f,
+                                1.0f, 1.0f, -1.0f, 1.0f, 0.0f,
+                                -1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+                                1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+
+                                // front
+                                -1.0f, -1.0f, 1.0f, 1.0f, 0.0f,
+                                1.0f, -1.0f, 1.0f, 0.0f, 0.0f,
+                                -1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+                                1.0f, -1.0f, 1.0f, 0.0f, 0.0f,
+                                1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+                                -1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+
+                                // back
+                                -1.0f, -1.0f, -1.0f, 0.0f, 0.0f,
+                                -1.0f, 1.0f, -1.0f, 0.0f, 1.0f,
+                                1.0f, -1.0f, -1.0f, 1.0f, 0.0f,
+                                1.0f, -1.0f, -1.0f, 1.0f, 0.0f,
+                                -1.0f, 1.0f, -1.0f, 0.0f, 1.0f,
+                                1.0f, 1.0f, -1.0f, 1.0f, 1.0f,
+
+                                // left
+                                -1.0f, -1.0f, 1.0f, 0.0f, 1.0f,
+                                -1.0f, 1.0f, -1.0f, 1.0f, 0.0f,
+                                -1.0f, -1.0f, -1.0f, 0.0f, 0.0f,
+                                -1.0f, -1.0f, 1.0f, 0.0f, 1.0f,
+                                -1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+                                -1.0f, 1.0f, -1.0f, 1.0f, 0.0f,
+
+                                // right
+                                1.0f, -1.0f, 1.0f, 1.0f, 1.0f,
+                                1.0f, -1.0f, -1.0f, 1.0f, 0.0f,
+                                1.0f, 1.0f, -1.0f, 0.0f, 0.0f,
+                                1.0f, -1.0f, 1.0f, 1.0f, 1.0f,
+                                1.0f, 1.0f, -1.0f, 0.0f, 0.0f,
+                                1.0f, 1.0f, 1.0f, 0.0f, 1.0f
                         })
                 .flip();
 
-            /* Generate Vertex Buffer Object */
+        /* Generate Vertex Buffer Object */
         vbo = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glBufferData(GL_ARRAY_BUFFER, vertices, GL_STATIC_DRAW);
 
-        IntBuffer elements = BufferUtils.createIntBuffer(2 * 3);
-        elements.put(new int[]{0, 1, 2});
-        elements.put(new int[]{2, 3, 0});
-        elements.flip();
-
         program.pointer("position", 3, 0);
-        program.pointer("color", 3, 3);
-        program.pointer("texcoord", 2, 6);
-
-        /* Generate Element Buffer Object */
-        ebo = glGenBuffers();
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, elements, GL_STATIC_DRAW);
+        program.pointer("texcoord", 2, 3);
     }
 
     @Override
-    public void draw() {
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    public void draw(Program program) {
         glBindVertexArray(vao);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glDrawArrays(GL_TRIANGLES, 0, 6 * 2 * 3);
+
+        glBindVertexArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
 }

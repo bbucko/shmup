@@ -1,9 +1,11 @@
 package pl.iogreen.games.shmup.game;
 
 import org.joml.Matrix4f;
+import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFWKeyCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pl.iogreen.games.shmup.Shmup;
 import pl.iogreen.games.shmup.game.utils.Timer;
 import pl.iogreen.games.shmup.graphic.Player;
 import pl.iogreen.games.shmup.graphic.opengl.Program;
@@ -22,8 +24,7 @@ public class Game extends GLFWKeyCallback {
 
     private static final Logger LOG = LoggerFactory.getLogger(Game.class);
 
-    private static final float RATIO = 640f / 480f;
-    private static final float STEP = 0.00000001f;
+    private static final float RATIO = (float) (Shmup.SCREEN_WIDTH / Shmup.SCREEN_HEIGHT);
 
     private float angle = 0;
     private float time = 0;
@@ -38,8 +39,6 @@ public class Game extends GLFWKeyCallback {
     private final Matrix4f projectionMatrix = new Matrix4f().ortho(-RATIO, RATIO, -1f, 1f, -1f, 1f);
 
     public boolean stillAlive = true;
-
-    private float angleAccumulator;
 
     public Game(Timer timer) {
         this.timer = timer;
@@ -68,6 +67,9 @@ public class Game extends GLFWKeyCallback {
         program.uniform("projection", projectionMatrix);
         program.uniform("time", time);
 
+        viewMatrix.lookAt(new Vector3f(3, 3, 3), new Vector3f(0, 0, 0), new Vector3f(0, 1, 0));
+        projectionMatrix.perspective((float) Math.toRadians(50), RATIO, 0.1f, 10.0f);
+
         /* Generate Texture */
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, new Texture("/graphics/wooden-crate.jpg").objectId);
@@ -76,11 +78,11 @@ public class Game extends GLFWKeyCallback {
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, new Texture("/graphics/sample2.png").objectId);
         glUniform1i(glGetUniformLocation(program.objectId, "secondTexture"), 1);
+        program.stopUsing();
     }
 
     private void updateState() {
-//        modelMatrix.rotate(angle, 0f, 0f, 1f);
-//        time = (float) Math.sin(angle);
+
     }
 
     private void updateUniforms() {
@@ -97,13 +99,16 @@ public class Game extends GLFWKeyCallback {
 
     public void render(float alpha) {
         timer.updateFPSCount();
+        program.use();
         updateUniforms();
 
         try {
             player.prepare(program);
-            player.draw();
+            player.draw(program);
         } catch (Exception e) {
             LOG.error("Error", e);
+        } finally {
+            program.stopUsing();
         }
     }
 

@@ -16,6 +16,8 @@ public class Program {
     public final int objectId;
     private final Set<Shader> shaders = new HashSet<>();
 
+    public final static int VERTEX_SIZE = 5;
+
     public Program(Shader... shaders) {
         //Create shader program
         objectId = glCreateProgram();
@@ -55,7 +57,7 @@ public class Program {
     }
 
     public void pointer(String pointerName, int size, int offset) {
-        pointer(pointerName, size, 8, offset);
+        pointer(pointerName, size, VERTEX_SIZE, offset);
     }
 
     public void pointer(String pointerName, int size, int length, int offset) {
@@ -66,5 +68,12 @@ public class Program {
 
     private int floats(int i) {
         return i * java.lang.Float.BYTES;
+    }
+
+    public void stopUsing() {
+        if (!glIsProgram(objectId)) {
+            throw new IllegalArgumentException();
+        }
+        glUseProgram(0);
     }
 }

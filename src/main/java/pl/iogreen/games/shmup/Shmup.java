@@ -1,6 +1,5 @@
 package pl.iogreen.games.shmup;
 
-import org.apache.commons.imaging.ImageReadException;
 import org.lwjgl.Sys;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWErrorCallback;
@@ -10,10 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.iogreen.games.shmup.game.Game;
 import pl.iogreen.games.shmup.game.utils.Timer;
-import pl.iogreen.games.shmup.graphic.Image;
-
-import java.io.IOException;
-import java.net.URISyntaxException;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -24,7 +19,7 @@ public class Shmup {
     private static final Logger LOG = LoggerFactory.getLogger(Shmup.class);
 
     static public final int SCREEN_WIDTH = 800;
-    static public final int SCREEN_HEIGHT = 600; //480
+    static public final int SCREEN_HEIGHT = 600;
 
     // We need to strongly reference callback instances.
     private final GLFWErrorCallback errorCallback;
@@ -91,8 +86,10 @@ public class Shmup {
         try {
             final GLContext glContext = GLContext.createFromCurrent();
 
-            glEnable(GL_DEPTH_TEST);
-            glDepthFunc(GL_LESS);
+//            glEnable(GL_DEPTH_TEST);
+//            glDepthFunc(GL_LESS);
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
             LOG.info("Hello LWJGL {}!", Sys.getVersion());
             LOG.info("OpenGL Version: {} ({})", GL11.glGetString(GL11.GL_VERSION), glContext.getCapabilities().OpenGL41);
@@ -103,7 +100,7 @@ public class Shmup {
                 final long tick = timer.tick();
                 accumulator += tick;
 
-                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                glClear(GL_COLOR_BUFFER_BIT);
                 glfwPollEvents();
                 while (accumulator >= interval) {
                     game.update(interval);

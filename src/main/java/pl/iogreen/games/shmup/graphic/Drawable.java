@@ -4,5 +4,6 @@ import pl.iogreen.games.shmup.graphic.opengl.Program;
 
 public interface Drawable {
     void prepare(Program program);
-    void draw();
+
+    void draw(Program program);
 }
