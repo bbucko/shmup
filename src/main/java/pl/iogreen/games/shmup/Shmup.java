@@ -86,8 +86,9 @@ public class Shmup {
         try {
             final GLContext glContext = GLContext.createFromCurrent();
 
-//            glEnable(GL_DEPTH_TEST);
-//            glDepthFunc(GL_LESS);
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_LESS);
+
             glEnable(GL_BLEND);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -100,7 +101,7 @@ public class Shmup {
                 final long tick = timer.tick();
                 accumulator += tick;
 
-                glClear(GL_COLOR_BUFFER_BIT);
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                 glfwPollEvents();
                 while (accumulator >= interval) {
                     game.update(interval);
@@ -113,6 +114,11 @@ public class Shmup {
 
                 if (timer.frameElapsed()) {
                     LOG.debug("FPS: {} UPS: {}", timer.fps(), timer.ups());
+                }
+
+                int error = glGetError();
+                if (error != GL_NO_ERROR) {
+                    LOG.error("Error ocurred: {}", error);
                 }
             }
 

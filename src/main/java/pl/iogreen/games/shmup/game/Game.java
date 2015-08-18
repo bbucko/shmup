@@ -1,5 +1,6 @@
 package pl.iogreen.games.shmup.game;
 
+import org.joml.AxisAngle4f;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFWKeyCallback;
@@ -24,7 +25,7 @@ public class Game extends GLFWKeyCallback {
 
     private static final Logger LOG = LoggerFactory.getLogger(Game.class);
 
-    private static final float RATIO = (float) (Shmup.SCREEN_WIDTH / Shmup.SCREEN_HEIGHT);
+    private static final float RATIO = (float )Shmup.SCREEN_WIDTH / (float) Shmup.SCREEN_HEIGHT;
 
     private float angle = 0;
     private float time = 0;
@@ -36,7 +37,7 @@ public class Game extends GLFWKeyCallback {
 
     private final Matrix4f modelMatrix = new Matrix4f();
     private final Matrix4f viewMatrix = new Matrix4f();
-    private final Matrix4f projectionMatrix = new Matrix4f().ortho(-RATIO, RATIO, -1f, 1f, -1f, 1f);
+    private final Matrix4f projectionMatrix = new Matrix4f();
 
     public boolean stillAlive = true;
 
@@ -62,13 +63,14 @@ public class Game extends GLFWKeyCallback {
                 Shader.createVertexShader("/shaders/vertex/simple.glsl"),
                 Shader.createFragmentShader("/shaders/fragment/simple.glsl")
         );
+
+        viewMatrix.lookAt(new Vector3f(3, 3, 3), new Vector3f(0, 0, 0), new Vector3f(0, 1, 0));
+        projectionMatrix.perspective((float) Math.toRadians(50), RATIO, 0.1f, 10.0f);
+
         program.uniform("model", modelMatrix);
         program.uniform("view", viewMatrix);
         program.uniform("projection", projectionMatrix);
         program.uniform("time", time);
-
-        viewMatrix.lookAt(new Vector3f(3, 3, 3), new Vector3f(0, 0, 0), new Vector3f(0, 1, 0));
-        projectionMatrix.perspective((float) Math.toRadians(50), RATIO, 0.1f, 10.0f);
 
         /* Generate Texture */
         glActiveTexture(GL_TEXTURE0);
@@ -82,13 +84,11 @@ public class Game extends GLFWKeyCallback {
     }
 
     private void updateState() {
-
+        modelMatrix.rotate(new AxisAngle4f(0.01f, 0, 1, 0));
     }
 
     private void updateUniforms() {
         program.uniform("model", modelMatrix);
-        program.uniform("view", viewMatrix);
-        program.uniform("projection", projectionMatrix);
         program.uniform("time", time);
     }
 
